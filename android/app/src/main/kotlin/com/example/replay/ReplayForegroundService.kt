@@ -9,12 +9,18 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.*
+import android.os.Binder
 import android.os.IBinder
 import android.os.Process
 import io.flutter.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import java.io.DataOutputStream
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.time.Instant
+import kotlin.io.path.outputStream
 
 
 class ReplayForegroundService : Service() {
@@ -26,8 +32,16 @@ class ReplayForegroundService : Service() {
     }
     private var isRecording = false
     private var thread: Thread? = null
-    override fun onBind(intent: Intent?): IBinder? {
-        TODO("Not yet implemented")
+    private var micRecorder: AudioRecord? = null
+    private var recordedBuffer: ByteArray? = null
+    private val binder = ReplayServiceBinder()
+
+    inner class ReplayServiceBinder : Binder() {
+        fun getService(): ReplayForegroundService = this@ReplayForegroundService
+    }
+
+    override fun onBind(intent: Intent?): IBinder {
+        return binder
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -41,28 +55,27 @@ class ReplayForegroundService : Service() {
                 val bufferSize = AudioRecord.getMinBufferSize(sampleRate, INPUT_CHANNEL, INPUT_ENCODING)
                 val recBufferSize = sampleRate * REC_BUFFER_MULTIPLIER
                 val buffer = ByteArray(bufferSize)
+                recordedBuffer = ByteArray(recBufferSize)
                 Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
 
-                val micRecorder = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, INPUT_CHANNEL, INPUT_ENCODING, bufferSize)
-                val recordedBuffer = ByteArray(recBufferSize)
+                micRecorder = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, INPUT_CHANNEL, INPUT_ENCODING, bufferSize)
                 var pos = 0
                 isRecording = true
-                micRecorder.startRecording()
-                val startTime = Instant.now()
+                micRecorder?.startRecording()
                 while(isRecording) {
-                    val readBytes = micRecorder.read(buffer, 0, bufferSize)
+                    val readBytes = micRecorder?.read(buffer, 0, bufferSize) ?: throw IllegalStateException()
                     if(readBytes > 0) {
                         if(pos + readBytes > recBufferSize) {
                             shiftBuffer(buffer, pos + readBytes - recBufferSize)
                             pos -= (pos + readBytes - recBufferSize)
                         }
-                        buffer.copyInto(recordedBuffer, pos, readBytes)
+                        buffer.copyInto(recordedBuffer!!, pos, readBytes)
                         pos += readBytes
                     }
                 }
-                micRecorder.release()
+                micRecorder?.release()
             } catch(e: Throwable) {
-                throw e
+                Log.e("replay_service", "${e.message}")
             }
         }
         thread?.start()
@@ -71,12 +84,72 @@ class ReplayForegroundService : Service() {
 
     override fun onDestroy() {
         isRecording = false
+        micRecorder?.stop()
+        micRecorder?.release()
+        micRecorder = null
         super.onDestroy()
     }
 
     private fun shiftBuffer(buffer: ByteArray, shift: Int) {
         for(i in shift until buffer.size) {
             buffer[i - shift] = buffer[i]
+        }
+    }
+
+    fun saveReplay(path: String) {
+        var buffer: ByteArray? = null
+        recordedBuffer?.let {
+            synchronized(it) {
+                buffer = it
+            }
+        } ?: throw IllegalStateException()
+        if(buffer == null) throw IllegalStateException()
+        val file = Files.createFile(Paths.get(path, "${Instant.now()}.wav"))
+        var output: DataOutputStream? = null
+        try {
+            val _buffer = buffer ?: return
+            // https://stackoverflow.com/questions/37281430/how-to-convert-pcm-file-to-wav-or-mp3
+            output = DataOutputStream(file.outputStream())
+            // WAVE header
+            // see http://ccrma.stanford.edu/courses/422/projects/WaveFormat/
+            val sampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_SYSTEM)
+            writeString(output, "RIFF") // chunk id
+            writeInt(output, 36 + _buffer.size) // chunk size
+            writeString(output, "WAVE") // format
+            writeString(output, "fmt ") // subchunk 1 id
+            writeInt(output, 16) // subchunk 1 size
+            writeShort(output, 1.toShort()) // audio format (1 = PCM)
+            writeShort(output, 1.toShort()) // number of channels
+            writeInt(output, sampleRate) // sample rate
+            writeInt(output, sampleRate) // byte rate
+            writeShort(output, 1.toShort()) // block align
+            writeShort(output, 8.toShort()) // bits per sample
+            writeString(output, "data") // subchunk 2 id
+            writeInt(output, _buffer.size) // subchunk 2 size
+
+            output.write(buffer)
+        } finally {
+            output?.close()
+        }
+    }
+    @Throws(IOException::class)
+    private fun writeInt(output: DataOutputStream, value: Int) {
+        output.write(value shr 0)
+        output.write(value shr 8)
+        output.write(value shr 16)
+        output.write(value shr 24)
+    }
+
+    @Throws(IOException::class)
+    private fun writeShort(output: DataOutputStream, value: Short) {
+        output.write(value.toInt() shr 0)
+        output.write(value.toInt() shr 8)
+    }
+
+    @Throws(IOException::class)
+    private fun writeString(output: DataOutputStream, value: String) {
+        for (i in 0 until value.length) {
+            output.write(value[i].code)
         }
     }
 

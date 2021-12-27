@@ -26,6 +26,7 @@ class ReplayListState extends State<ReplayList> {
             );
           }
           return ListView.builder(
+            itemCount: snapshot.data?.length,
             itemBuilder: (context, index) {
               File? file = snapshot.data?[index].file;
               return ListTile(
@@ -57,11 +58,11 @@ class ReplayListState extends State<ReplayList> {
   }
 
   Future<List<ReplayListItem>> loadList() async {
-    Directory dir = Directory(join((await getApplicationDocumentsDirectory()).path, './replays'));
+    Directory dir = Directory(join((await getApplicationDocumentsDirectory()).path, './replays/'));
     if(!dir.existsSync()) dir.createSync(recursive: true);
     List<ReplayListItem> replays = <ReplayListItem>[];
     for (FileSystemEntity file in dir.listSync(followLinks: true)) {
-      if (file.path.endsWith('mp3')) {
+      if (file.path.endsWith('.wav')) {
         replays.add(ReplayListItem(file: File.fromUri(file.uri)));
       }
     }

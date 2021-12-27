@@ -1,8 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:replay/replay/replay_list_widgets.dart';
+import 'package:path/path.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,7 +49,15 @@ class MainPageState extends State<MainPage> {
               'NOTIFICATION_TITLE': 'NOTIFICATION_TITLE'.tr(),
               'NOTIFICATION_TEXT': 'NOTIFICATION_TEXT'.tr()
             });
-          }, icon: const Icon(Icons.mic))
+          }, icon: const Icon(Icons.mic)),
+          IconButton(onPressed: () async {
+            await platform.invokeMethod('stopReplayForegroundService');
+          }, icon: const Icon(Icons.mic_off)),
+          IconButton(onPressed: () async {
+            await platform.invokeMethod('saveReplay', {
+              'PATH': join((await getApplicationDocumentsDirectory()).path, "./replays/")
+            });
+          }, icon: const Icon(Icons.save))
         ],
       ),
       body: Container(
