@@ -1,5 +1,7 @@
 {
     "TITLE": "Replay",
     "LOADING_REPLAYS": "Loading Replays...",
-    "EMPTY_REPLAYS": "No Replays"
+    "EMPTY_REPLAYS": "No Replays",
+    "NOTIFICATION_TITLE": "Replay service is running",
+    "NOTIFICATION_TEXT": "Touch to save replay."
 }

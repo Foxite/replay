@@ -29,7 +29,7 @@ class ReplayListState extends State<ReplayList> {
             itemBuilder: (context, index) {
               File? file = snapshot.data?[index].file;
               return ListTile(
-                leading: const Icon(Icons.play_arrow),
+                leading: const Icon(Icons.replay_rounded),
                 title: Text(basename(file!.path)),
                 subtitle: Text(file.statSync().modified.toString()),
               );
