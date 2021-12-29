@@ -20,11 +20,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import java.io.DataOutputStream
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Instant
 import kotlin.io.path.outputStream
-import kotlin.math.abs
 
 
 class ReplayForegroundService : Service() {
@@ -32,13 +33,13 @@ class ReplayForegroundService : Service() {
         const val NOTI_CHANNEL_ID = "REPLAY_FOREGROUND_SERVICE_CHANNEL"
         const val GENERAL_NOTI_CHANNEL_ID = "GENERAL_NOTIFICATION_CHANNEL"
         const val INPUT_CHANNEL = AudioFormat.CHANNEL_IN_MONO
-        const val INPUT_ENCODING = AudioFormat.ENCODING_PCM_8BIT
+        const val INPUT_ENCODING = AudioFormat.ENCODING_PCM_16BIT
         const val REC_BUFFER_MULTIPLIER = 30
     }
     private var isRecording = false
     private var thread: Thread? = null
     private var micRecorder: AudioRecord? = null
-    private var recordedBuffer: ByteArray? = null
+    private var recordedBuffer: ShortArray? = null
     private val binder = ReplayServiceBinder()
 
     inner class ReplayServiceBinder : Binder() {
@@ -59,8 +60,8 @@ class ReplayForegroundService : Service() {
                 val sampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_SYSTEM)
                 val bufferSize = AudioRecord.getMinBufferSize(sampleRate, INPUT_CHANNEL, INPUT_ENCODING)
                 val recBufferSize = sampleRate * REC_BUFFER_MULTIPLIER
-                val buffer = ByteArray(bufferSize)
-                recordedBuffer = ByteArray(recBufferSize)
+                val buffer = ShortArray(bufferSize)
+                recordedBuffer = ShortArray(recBufferSize)
                 Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
 
                 micRecorder = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, INPUT_CHANNEL, INPUT_ENCODING, bufferSize)
@@ -71,10 +72,10 @@ class ReplayForegroundService : Service() {
                     val readBytes = micRecorder?.read(buffer, 0, bufferSize) ?: throw IllegalStateException()
                     if(readBytes > 0) {
                         if(pos + readBytes > recBufferSize) {
-                            shiftBuffer(buffer, pos + readBytes - recBufferSize)
+                            recordedBuffer = shiftBuffer(recordedBuffer!!, pos + readBytes - recBufferSize)
                             pos -= (pos + readBytes - recBufferSize)
                         }
-                        buffer.copyInto(recordedBuffer!!, pos, readBytes)
+                        buffer.copyInto(recordedBuffer!!, pos, 0, readBytes)
                         pos += readBytes
                     } else {
                         throw IllegalStateException()
@@ -97,45 +98,41 @@ class ReplayForegroundService : Service() {
         super.onDestroy()
     }
 
-    private fun shiftBuffer(buffer: ByteArray, shift: Int) {
+    private fun shiftBuffer(buffer: ShortArray, shift: Int): ShortArray {
         for(i in shift until buffer.size) {
             buffer[i - shift] = buffer[i]
         }
+        return buffer
     }
 
     fun saveReplay(path: String? = null) {
         val path = path ?: Paths.get(getDir("flutter", MODE_PRIVATE).toString(), "./replays/").toString()
-        var buffer: ByteArray? = null
-        recordedBuffer?.let {
-            synchronized(it) {
-                buffer = it
-            }
-        } ?: throw IllegalStateException()
-        if(buffer == null) throw IllegalStateException()
+        var buffer: ShortArray? = recordedBuffer ?: throw IllegalStateException()
         val file = Files.createFile(Paths.get(path, "${Instant.now()}.wav"))
         var output: DataOutputStream? = null
         try {
-            val _buffer = buffer ?: return
+            val shortBuffer = buffer ?: return
             // https://stackoverflow.com/questions/37281430/how-to-convert-pcm-file-to-wav-or-mp3
             output = DataOutputStream(file.outputStream())
             // WAVE header
             // see http://ccrma.stanford.edu/courses/422/projects/WaveFormat/
             val sampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_SYSTEM)
             writeString(output, "RIFF") // chunk id
-            writeInt(output, 36 + _buffer.size) // chunk size
+            writeInt(output, 36 + shortBuffer.size * 2) // chunk size
             writeString(output, "WAVE") // format
             writeString(output, "fmt ") // subchunk 1 id
             writeInt(output, 16) // subchunk 1 size
             writeShort(output, 1.toShort()) // audio format (1 = PCM)
             writeShort(output, 1.toShort()) // number of channels
             writeInt(output, sampleRate) // sample rate
-            writeInt(output, sampleRate) // byte rate
-            writeShort(output, 1.toShort()) // block align
-            writeShort(output, 8.toShort()) // bits per sample
+            writeInt(output, sampleRate * 2) // byte rate
+            writeShort(output, 2.toShort()) // block align
+            writeShort(output, 16.toShort()) // bits per sample
             writeString(output, "data") // subchunk 2 id
-            writeInt(output, _buffer.size) // subchunk 2 size
-
-            output.write(_buffer)
+            writeInt(output, shortBuffer.size * 2) // subchunk 2 size
+            val byteBuffer = ByteBuffer.allocate(shortBuffer.size * 2)
+            for(data in shortBuffer) byteBuffer.putShort(data)
+            output.write(byteBuffer.array())
         } finally {
             output?.close()
             val manager = getSystemService(NotificationManager::class.java)
