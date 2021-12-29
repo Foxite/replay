@@ -47,7 +47,12 @@ class MainPageState extends State<MainPage> {
           IconButton(onPressed: () async {
             await platform.invokeMethod('startReplayForegroundService', {
               'NOTIFICATION_TITLE': 'NOTIFICATION_TITLE'.tr(),
-              'NOTIFICATION_TEXT': 'NOTIFICATION_TEXT'.tr()
+              'NOTIFICATION_TEXT': 'NOTIFICATION_TEXT'.tr(),
+              'SAVE_REPLAY_TEXT': 'SAVE_REPLAY_TEXT'.tr(),
+              'TURN_OFF_TEXT': 'TURN_OFF_TEXT'.tr(),
+              'SAVE_COMPLETE_TITLE': 'SAVE_COMPLETE_TITLE'.tr(),
+              'SAVE_COMPLETE_TEXT': 'SAVE_COMPLETE_TEXT'.tr(),
+              'PERMISSION_REQUIRED': 'PERMISSION_REQUIRED'.tr()
             });
           }, icon: const Icon(Icons.mic)),
           IconButton(onPressed: () async {

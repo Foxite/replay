@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
+import android.widget.Toast
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -43,9 +44,18 @@ class MainActivity: FlutterActivity() {
                     with (pref.edit()) {
                         putString("NOTIFICATION_TITLE", call.argument("NOTIFICATION_TITLE"))
                         putString("NOTIFICATION_TEXT", call.argument("NOTIFICATION_TEXT"))
+                        putString("SAVE_REPLAY_TEXT", call.argument("SAVE_REPLAY_TEXT"))
+                        putString("TURN_OFF_TEXT", call.argument("TURN_OFF_TEXT"))
+                        putString("SAVE_COMPLETE_TITLE", call.argument("SAVE_COMPLETE_TITLE"))
+                        putString("SAVE_COMPLETE_TEXT", call.argument("SAVE_COMPLETE_TEXT"))
+                        putString("PERMISSION_REQUIRED", call.argument("PERMISSION_REQUIRED"))
                         commit()
                     }
-                    if(!requestRecordPermission()) return@setMethodCallHandler result.success(null)
+                    if(!requestRecordPermission()) {
+                        Toast.makeText(this, pref.getString("PERMISSION_REQUIRED", "PERMISSION_REQUIRED"), Toast.LENGTH_LONG).show()
+                        result.success(null)
+                        return@setMethodCallHandler
+                    }
                     val serviceIntent = Intent(this, ReplayForegroundService::class.java)
                     startForegroundService(serviceIntent)
                     bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)
@@ -57,7 +67,8 @@ class MainActivity: FlutterActivity() {
                 }
                 "saveReplay" -> {
                     if(isReplayServiceBound && replayService != null) {
-                        result.success(replayService?.saveReplay(call.argument("PATH") ?: throw InvalidParameterException()))
+                        replayService?.saveReplay(call.argument("PATH") ?: throw InvalidParameterException())
+                        result.success(null)
                         return@setMethodCallHandler
                     }
                     result.error("SERVICE_NOT_BIND", "Service is not bind.", null)
@@ -69,7 +80,7 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    fun requestRecordPermission(): Boolean {
+    private fun requestRecordPermission(): Boolean {
         if(checkSelfPermission(RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             return true
         }
