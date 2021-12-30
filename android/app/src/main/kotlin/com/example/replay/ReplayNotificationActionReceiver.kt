@@ -9,7 +9,9 @@ class ReplayNotificationActionReceiver : BroadcastReceiver() {
         when(intent?.action) {
             "SAVE_REPLAY" -> {
                 val binder = peekService(context, Intent(context, ReplayForegroundService::class.java)) as ReplayForegroundService.ReplayServiceBinder
-                binder.getService().saveReplay()
+                Thread {
+                    binder.getService().saveReplay()
+                }.start()
             }
             "STOP_REPLAY_SERVICE" -> {
                 context?.stopService(Intent(context, ReplayForegroundService::class.java))

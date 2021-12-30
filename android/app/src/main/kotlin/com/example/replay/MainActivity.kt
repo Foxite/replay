@@ -11,6 +11,9 @@ import android.widget.Toast
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.security.InvalidParameterException
 
 class MainActivity: FlutterActivity() {
@@ -67,7 +70,9 @@ class MainActivity: FlutterActivity() {
                 }
                 "saveReplay" -> {
                     if(isReplayServiceBound && replayService != null) {
-                        replayService?.saveReplay(call.argument("PATH") ?: throw InvalidParameterException())
+                        Thread {
+                            replayService?.saveReplay(call.argument("PATH") ?: throw InvalidParameterException())
+                        }.start()
                         result.success(null)
                         return@setMethodCallHandler
                     }

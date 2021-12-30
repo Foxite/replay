@@ -18,6 +18,8 @@ import io.flutter.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.DataOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -36,6 +38,7 @@ class ReplayForegroundService : Service() {
         const val INPUT_ENCODING = AudioFormat.ENCODING_PCM_16BIT
         const val REC_BUFFER_MULTIPLIER = 30
     }
+
     private var isRecording = false
     private var thread: Thread? = null
     private var micRecorder: AudioRecord? = null
@@ -68,10 +71,11 @@ class ReplayForegroundService : Service() {
                 var pos = 0
                 isRecording = true
                 micRecorder?.startRecording()
-                while(isRecording) {
-                    val readBytes = micRecorder?.read(buffer, 0, bufferSize) ?: throw IllegalStateException()
-                    if(readBytes > 0) {
-                        if(pos + readBytes > recBufferSize) {
+                while (isRecording) {
+                    val readBytes = micRecorder?.read(buffer, 0, bufferSize)
+                            ?: throw IllegalStateException()
+                    if (readBytes > 0) {
+                        if (pos + readBytes > recBufferSize) {
                             recordedBuffer = shiftBuffer(recordedBuffer!!, pos + readBytes - recBufferSize)
                             pos -= (pos + readBytes - recBufferSize)
                         }
@@ -81,8 +85,9 @@ class ReplayForegroundService : Service() {
                         throw IllegalStateException()
                     }
                 }
+                micRecorder?.stop()
                 micRecorder?.release()
-            } catch(e: Throwable) {
+            } catch (e: Throwable) {
                 Log.e("replay_service", "${e.message}")
             }
         }
@@ -92,21 +97,22 @@ class ReplayForegroundService : Service() {
 
     override fun onDestroy() {
         isRecording = false
-        micRecorder?.stop()
+        thread?.join()
         micRecorder?.release()
         micRecorder = null
         super.onDestroy()
     }
 
     private fun shiftBuffer(buffer: ShortArray, shift: Int): ShortArray {
-        for(i in shift until buffer.size) {
+        for (i in shift until buffer.size) {
             buffer[i - shift] = buffer[i]
         }
         return buffer
     }
 
     fun saveReplay(path: String? = null) {
-        val path = path ?: Paths.get(getDir("flutter", MODE_PRIVATE).toString(), "./replays/").toString()
+        val path = path
+                ?: Paths.get(getDir("flutter", MODE_PRIVATE).toString(), "./replays/").toString()
         var buffer: ShortArray? = recordedBuffer ?: throw IllegalStateException()
         val file = Files.createFile(Paths.get(path, "${Instant.now()}.wav"))
         var output: DataOutputStream? = null
@@ -130,8 +136,8 @@ class ReplayForegroundService : Service() {
             writeShort(output, 16.toShort()) // bits per sample
             writeString(output, "data") // subchunk 2 id
             writeInt(output, shortBuffer.size * 2) // subchunk 2 size
-            val byteBuffer = ByteBuffer.allocate(shortBuffer.size * 2)
-            for(data in shortBuffer) byteBuffer.putShort(data)
+            val byteBuffer = ByteBuffer.allocate(shortBuffer.size * 2).order(ByteOrder.LITTLE_ENDIAN)
+            for (data in shortBuffer) byteBuffer.putShort(data)
             output.write(byteBuffer.array())
         } finally {
             output?.close()
