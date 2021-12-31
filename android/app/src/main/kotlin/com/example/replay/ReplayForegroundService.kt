@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.media.*
@@ -27,6 +28,7 @@ import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Instant
+import kotlin.experimental.and
 import kotlin.io.path.outputStream
 
 
@@ -87,6 +89,7 @@ class ReplayForegroundService : Service() {
                 }
                 micRecorder?.stop()
                 micRecorder?.release()
+                micRecorder = null
             } catch (e: Throwable) {
                 Log.e("replay_service", "${e.message}")
             }
@@ -98,8 +101,6 @@ class ReplayForegroundService : Service() {
     override fun onDestroy() {
         isRecording = false
         thread?.join()
-        micRecorder?.release()
-        micRecorder = null
         super.onDestroy()
     }
 
@@ -113,18 +114,17 @@ class ReplayForegroundService : Service() {
     fun saveReplay(path: String? = null) {
         val path = path
                 ?: Paths.get(getDir("flutter", MODE_PRIVATE).toString(), "./replays/").toString()
-        var buffer: ShortArray? = recordedBuffer ?: throw IllegalStateException()
+        val buffer = recordedBuffer ?: throw IllegalStateException()
         val file = Files.createFile(Paths.get(path, "${Instant.now()}.wav"))
         var output: DataOutputStream? = null
         try {
-            val shortBuffer = buffer ?: return
             // https://stackoverflow.com/questions/37281430/how-to-convert-pcm-file-to-wav-or-mp3
             output = DataOutputStream(file.outputStream())
             // WAVE header
             // see http://ccrma.stanford.edu/courses/422/projects/WaveFormat/
             val sampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_SYSTEM)
             writeString(output, "RIFF") // chunk id
-            writeInt(output, 36 + shortBuffer.size * 2) // chunk size
+            writeInt(output, 36 + buffer.size * 2) // chunk size
             writeString(output, "WAVE") // format
             writeString(output, "fmt ") // subchunk 1 id
             writeInt(output, 16) // subchunk 1 size
@@ -135,9 +135,9 @@ class ReplayForegroundService : Service() {
             writeShort(output, 2.toShort()) // block align
             writeShort(output, 16.toShort()) // bits per sample
             writeString(output, "data") // subchunk 2 id
-            writeInt(output, shortBuffer.size * 2) // subchunk 2 size
-            val byteBuffer = ByteBuffer.allocate(shortBuffer.size * 2).order(ByteOrder.LITTLE_ENDIAN)
-            for (data in shortBuffer) byteBuffer.putShort(data)
+            writeInt(output, buffer.size * 2) // subchunk 2 size
+            val byteBuffer = ByteBuffer.allocate(buffer.size * 2).order(ByteOrder.LITTLE_ENDIAN)
+            for (data in buffer) byteBuffer.putShort(data)
             output.write(byteBuffer.array())
         } finally {
             output?.close()

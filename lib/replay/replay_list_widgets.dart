@@ -25,17 +25,30 @@ class ReplayListState extends State<ReplayList> {
               child: Text('EMPTY_REPLAYS'.tr()),
             );
           }
-          return ListView.builder(
-            itemCount: snapshot.data?.length,
-            itemBuilder: (context, index) {
-              File? file = snapshot.data?[index].file;
-              return ListTile(
-                leading: const Icon(Icons.replay_rounded),
-                title: Text(basename(file!.path)),
-                subtitle: Text(file.statSync().modified.toString()),
-              );
-            },
-          );
+          if(snapshot.data != null) {
+            List<ReplayListItem> data = snapshot.data!;
+            return ListView.builder(
+              itemCount: data.length,
+              itemBuilder: (context, index) {
+                File file = data[index].file;
+                return Dismissible(
+                  key: UniqueKey(),
+                  onDismissed: (direction) {
+                    setState(() {
+                      file.deleteSync();
+                      snapshot.data?.removeAt(index);
+                    });
+                  },
+                  child: ListTile(
+                    leading: const Icon(Icons.replay_rounded),
+                    title: Text(basename(file.path)),
+                    subtitle: Text(file.statSync().modified.toString()),
+                  ),
+                );
+              },
+            );
+          }
+          
         }
         return Container(
           alignment: Alignment.center,

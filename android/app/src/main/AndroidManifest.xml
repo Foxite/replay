@@ -30,12 +30,16 @@
             </intent-filter>
         </activity>
        <service android:enabled="true" android:foregroundServiceType="microphone" android:name=".ReplayForegroundService"/>
-        <receiver android:name=".BootCompleteReceiver" android:exported="true">
+        <receiver android:name=".BootCompleteReceiver"
+            android:exported="true"
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
 
         </receiver>
+        <receiver android:name=".ReplayNotificationActionReceiver"
+            android:enabled="true"/>
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
