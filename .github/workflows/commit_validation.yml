@@ -1,0 +1,25 @@
+name: Commit validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: "*"
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: britannio/action-install-flutter@v1.1
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: flutter format --output=none --set-exit-if-changed .
+      
+      - name: Dry Apk Build
+        run: flutter build apk
