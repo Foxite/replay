@@ -25,34 +25,34 @@ class ReplayListState extends State<ReplayList> {
               child: Text('EMPTY_REPLAYS'.tr()),
             );
           }
-          if(snapshot.data != null) {
-            List<ReplayListItem> data = snapshot.data!;
-            return ListView.builder(
-              itemCount: data.length,
-              itemBuilder: (context, index) {
-                File file = data[index].file;
-                return Dismissible(
-                  key: UniqueKey(),
-                  onDismissed: (direction) {
-                    setState(() {
-                      file.deleteSync();
-                      snapshot.data?.removeAt(index);
-                    });
-                  },
-                  background: Container(
-                    color: Colors.red,
-                    child: const Icon(Icons.delete, color: Colors.white,),
+          List<ReplayListItem> data = snapshot.data!;
+          return ListView.builder(
+            itemCount: data.length,
+            itemBuilder: (context, index) {
+              File file = data[index].file;
+              return Dismissible(
+                key: UniqueKey(),
+                onDismissed: (direction) {
+                  setState(() {
+                    file.deleteSync();
+                    snapshot.data?.removeAt(index);
+                  });
+                },
+                background: Container(
+                  color: Colors.red,
+                  child: const Icon(
+                    Icons.delete,
+                    color: Colors.white,
                   ),
-                  child: ListTile(
-                    leading: const Icon(Icons.replay_rounded),
-                    title: Text(basename(file.path)),
-                    subtitle: Text(file.statSync().modified.toString()),
-                  ),
-                );
-              },
-            );
-          }
-          
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.replay_rounded),
+                  title: Text(basename(file.path)),
+                  subtitle: Text(file.statSync().modified.toString()),
+                ),
+              );
+            },
+          );
         }
         return Container(
           alignment: Alignment.center,
@@ -75,8 +75,9 @@ class ReplayListState extends State<ReplayList> {
   }
 
   Future<List<ReplayListItem>> loadList() async {
-    Directory dir = Directory(join((await getApplicationDocumentsDirectory()).path, './replays/'));
-    if(!dir.existsSync()) dir.createSync(recursive: true);
+    Directory dir = Directory(
+        join((await getApplicationDocumentsDirectory()).path, './replays/'));
+    if (!dir.existsSync()) dir.createSync(recursive: true);
     List<ReplayListItem> replays = <ReplayListItem>[];
     for (FileSystemEntity file in dir.listSync(followLinks: true)) {
       if (file.path.endsWith('.wav')) {

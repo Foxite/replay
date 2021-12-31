@@ -39,6 +39,8 @@ class ReplayForegroundService : Service() {
         const val INPUT_CHANNEL = AudioFormat.CHANNEL_IN_MONO
         const val INPUT_ENCODING = AudioFormat.ENCODING_PCM_16BIT
         const val REC_BUFFER_MULTIPLIER = 30
+        var isServiceRunning = false
+
     }
 
     private var isRecording = false
@@ -95,12 +97,14 @@ class ReplayForegroundService : Service() {
             }
         }
         thread?.start()
+        isServiceRunning = true
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
         isRecording = false
         thread?.join()
+        isServiceRunning = false
         super.onDestroy()
     }
 

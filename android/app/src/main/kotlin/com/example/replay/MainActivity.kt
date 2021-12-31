@@ -1,19 +1,14 @@
 package com.example.replay
 
 import android.Manifest.permission.RECORD_AUDIO
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
 import android.content.pm.PackageManager
+import android.os.Bundle
 import android.os.IBinder
 import android.widget.Toast
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.security.InvalidParameterException
 
 class MainActivity: FlutterActivity() {
@@ -77,6 +72,25 @@ class MainActivity: FlutterActivity() {
                         return@setMethodCallHandler
                     }
                     result.error("SERVICE_NOT_BIND", "Service is not bind.", null)
+                }
+                "isReplayForegroundServiceRunning" -> {
+                    result.success(ReplayForegroundService.isServiceRunning)
+                }
+                "getSettingPreferences" -> {
+                    val pref = getSharedPreferences("SETTINGS", Context.MODE_PRIVATE)
+                            ?: return@setMethodCallHandler result.error("PREFERENCE_NOT_AVAILABLE", "Preference is not available.", null)
+                    result.success(pref.all)
+                }
+                "updateSettingPreferences" -> {
+                    val pref = getSharedPreferences("SETTINGS", Context.MODE_PRIVATE)
+                    with(pref.edit()) {
+                        for(key in BoolPreference.values()) {
+                            if(call.hasArgument(key.value)) {
+                                putBoolean(key.value, call.argument<Boolean>(key.value) ?: throw IllegalStateException())
+                            }
+                        }
+                        commit()
+                    }
                 }
                 else -> {
                     result.notImplemented()
