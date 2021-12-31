@@ -2,7 +2,6 @@ import 'package:easy_localization/src/public_ext.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_settings_ui/flutter_settings_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 
 enum BoolPreference {
@@ -59,10 +58,10 @@ class SettingsPageState extends State<SettingsPage> {
       floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.save),
           onPressed: () async {
-            if ((await platform
-                .invokeMethod("isReplayForegroundServiceRunning")) as bool) {
+            if (!((await platform
+                .invokeMethod("isReplayForegroundServiceRunning")) as bool)) {
               await saveSettingsAndApply(false);
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.of(context).popUntil((route) => !route.isFirst);
               return;
             }
             showDialog(
@@ -75,7 +74,7 @@ class SettingsPageState extends State<SettingsPage> {
                       onPressed: () async {
                         await saveSettingsAndApply(true);
                         Navigator.of(context)
-                            .popUntil((route) => route.isFirst);
+                            .popUntil((route) => !route.isFirst);
                       },
                       child: Text("DIALOG_YES".tr())),
                   TextButton(
