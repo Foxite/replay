@@ -39,6 +39,10 @@ class ReplayListState extends State<ReplayList> {
                       snapshot.data?.removeAt(index);
                     });
                   },
+                  background: Container(
+                    color: Colors.red,
+                    child: const Icon(Icons.delete, color: Colors.white,),
+                  ),
                   child: ListTile(
                     leading: const Icon(Icons.replay_rounded),
                     title: Text(basename(file.path)),
