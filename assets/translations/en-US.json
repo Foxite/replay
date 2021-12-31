@@ -8,5 +8,12 @@
     "TURN_OFF_TEXT": "Turn off",
     "SAVE_COMPLETE_TITLE": "Save complete",
     "SAVE_COMPLETE_TEXT": "Replay file is saved.",
-    "PERMISSION_REQUIRED": "Permission is required to perform this action. please try again after permission is granted."
+    "PERMISSION_REQUIRED": "Permission is required to perform this action. please try again after permission is granted.",
+    "SETTINGS_LABEL": "Settings",
+    "REFRESH_LIST_LABEL": "Refresh list",
+    "SETTINGS_SECTION_CHANNELS": "Channels to record",
+    "SETTINGS_CHANNEL_MIC": "Microphone",
+    "SETTINGS_CHANNEL_OUTPUT": "Output",
+    "SETTINGS_SECTION_SAVE": "Save",
+    "SETTINGS_SAVE_SEPERATELY_BY_CHANNEL": "Save seperately by channel"
 }

@@ -1,9 +1,11 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:replay/replay/replay_list_widgets.dart';
 import 'package:path/path.dart';
+import 'package:replay/settings_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +27,9 @@ class ReplayApp extends StatelessWidget {
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
+      theme: ThemeData(brightness: Brightness.light),
+      darkTheme: ThemeData(brightness: Brightness.dark),
+      themeMode: ThemeMode.system,
       home: const MainPage(),
     );
   }
@@ -39,6 +44,7 @@ class MainPage extends StatefulWidget {
 
 class MainPageState extends State<MainPage> {
   static const platform = MethodChannel('replay/replay.channel'); 
+  ValueNotifier<bool> isDialOpen = ValueNotifier(false);
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,6 +69,32 @@ class MainPageState extends State<MainPage> {
               'PATH': join((await getApplicationDocumentsDirectory()).path, "./replays/")
             });
           }, icon: const Icon(Icons.save))
+        ],
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: SpeedDial(
+        icon: Icons.menu,
+        activeIcon: Icons.close,
+        spacing: 4,
+        openCloseDial: isDialOpen,
+        spaceBetweenChildren: 4,
+        elevation: 8.0,
+        animationSpeed: 200,
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.settings),
+            label: "SETTINGS_LABEL".tr(),
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage()));
+            }
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.refresh),
+            label: "REFRESH_LIST_LABEL".tr(),
+            onTap: () {
+              setState(() {});
+            }
+          )
         ],
       ),
       body: Container(
