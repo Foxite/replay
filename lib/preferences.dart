@@ -1,0 +1,9 @@
+enum BoolPreference {
+  USE_MIC_CHANNEL,
+  USE_OUTPUT_CHANNEL,
+  SAVE_SEPERATELY_BY_CHANNEL
+}
+
+enum IntPreference {
+  RECORD_LENGTH
+}

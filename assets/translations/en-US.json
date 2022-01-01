@@ -15,10 +15,13 @@
     "SETTINGS_CHANNEL_MIC": "Microphone",
     "SETTINGS_CHANNEL_OUTPUT": "Output",
     "SETTINGS_SECTION_SAVE": "Save",
+    "SETTINGS_SAVE_RECORD_LENGTH": "Record length in seconds",
     "SETTINGS_SAVE_SEPERATELY_BY_CHANNEL": "Save seperately by channel",
     "SAVE_SETTINGS_ALERT_TITLE": "Confirm saving settings",
-    "SAVE_SETTINGS_ALERT_TEXT": "Replay service is running.\nSaving settings will restart Replay service and dispose all data in buffer.",
+    "SAVE_SETTINGS_ALERT_TEXT": "Replay service is running.\nSaving settings will restart Replay service and dispose all data in buffer.\n\nDo you want to save now?",
     "DIALOG_YES": "Yes",
     "DIALOG_NO": "No",
+    "DIALOG_CONFIRM": "Confirm",
+    "DIALOG_CANCEL": "Cancel",
     "LOADING_SETTINGS": "Loading Settings..."
 }

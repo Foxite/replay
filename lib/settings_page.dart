@@ -3,12 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_settings_ui/flutter_settings_ui.dart';
 import 'package:enum_to_string/enum_to_string.dart';
-
-enum BoolPreference {
-  USE_MIC_CHANNEL,
-  USE_OUTPUT_CHANNEL,
-  SAVE_SEPERATELY_BY_CHANNEL
-}
+import 'package:replay/preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -90,17 +85,18 @@ class SettingsPageState extends State<SettingsPage> {
   }
 
   Future<Map<String, dynamic>> getPreferences() async {
-    return await platform.invokeMapMethod<String, dynamic>("getSettingPreferences") as Map<String, dynamic>;
+    return await platform.invokeMapMethod<String, dynamic>(
+        "getSettingPreferences") as Map<String, dynamic>;
   }
 
   Future<void> saveSettingsAndApply(bool needRestart) async {
-    if(settingsWidget == null) return;
+    if (settingsWidget == null) return;
     if (needRestart) {
       await platform.invokeMethod("stopReplayForegroundService");
     }
     Map<String, dynamic> preferences = settingsWidget!.changedPreferences;
     await platform.invokeMethod("updateSettingPreferences", preferences);
-    if(needRestart) {
+    if (needRestart) {
       await platform.invokeMethod("startReplayForegroundService");
     }
   }
@@ -116,19 +112,25 @@ class ReplaySettingsList extends StatefulWidget {
 
 class ReplaySettingsListState extends State<ReplaySettingsList> {
   Map<BoolPreference, bool> boolPreferences = {};
-  
+  Map<IntPreference, int> intPreferences = {};
+
   @override
   void initState() {
     super.initState();
     Map<String, dynamic> preferences = widget.preferences;
-    for(String key in preferences.keys) {
-      BoolPreference? boolKey = EnumToString.fromString(BoolPreference.values, key);
-      if(boolKey != null) {
+    for (String key in preferences.keys) {
+      BoolPreference? boolKey =
+          EnumToString.fromString(BoolPreference.values, key);
+      IntPreference? intKey =
+          EnumToString.fromString(IntPreference.values, key);
+      if (boolKey != null) {
         boolPreferences[boolKey] = preferences[key] as bool;
+      } else if (intKey != null) {
+        intPreferences[intKey] = preferences[key] as int;
       }
     }
-    for(BoolPreference key in BoolPreference.values) {
-      if(boolPreferences[key] == null) {
+    for (BoolPreference key in BoolPreference.values) {
+      if (boolPreferences[key] == null) {
         boolPreferences[key] = false;
       }
     }
@@ -136,7 +138,8 @@ class ReplaySettingsListState extends State<ReplaySettingsList> {
 
   @override
   Widget build(BuildContext context) {
-    widget.changedPreferences.addAll(boolPreferences.map((key, value) => MapEntry(key.name, value)));
+    widget.changedPreferences
+        .addAll(boolPreferences.map((key, value) => MapEntry(key.name, value)));
     return SettingsList(
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       backgroundColor: const Color.fromARGB(0, 0, 0, 0),
@@ -157,12 +160,10 @@ class ReplaySettingsListState extends State<ReplaySettingsList> {
             SettingsTile.switchTile(
               title: 'SETTINGS_CHANNEL_OUTPUT'.tr(),
               leading: const Icon(Icons.speaker),
-              switchValue:
-                  boolPreferences[BoolPreference.USE_OUTPUT_CHANNEL],
+              switchValue: boolPreferences[BoolPreference.USE_OUTPUT_CHANNEL],
               onToggle: (value) {
                 setState(() {
-                  boolPreferences[BoolPreference.USE_OUTPUT_CHANNEL] =
-                      value;
+                  boolPreferences[BoolPreference.USE_OUTPUT_CHANNEL] = value;
                 });
               },
             )
@@ -171,15 +172,23 @@ class ReplaySettingsListState extends State<ReplaySettingsList> {
         SettingsSection(
           title: 'SETTINGS_SECTION_SAVE'.tr(),
           tiles: [
+            SettingsTile(
+              title: 'SETTINGS_SAVE_RECORD_LENGTH'.tr(),
+              subtitle: intPreferences[IntPreference.RECORD_LENGTH].toString(),
+              leading: const Icon(Icons.timelapse),
+              onPressed: (context) {
+                showIntEditDialog(context, IntPreference.RECORD_LENGTH, 'SETTINGS_SAVE_RECORD_LENGTH');
+              },
+            ),
             SettingsTile.switchTile(
               title: 'SETTINGS_SAVE_SEPERATELY_BY_CHANNEL'.tr(),
               leading: const Icon(Icons.file_copy),
-              switchValue: boolPreferences[
-                  BoolPreference.SAVE_SEPERATELY_BY_CHANNEL],
+              switchValue:
+                  boolPreferences[BoolPreference.SAVE_SEPERATELY_BY_CHANNEL],
               onToggle: (value) {
                 setState(() {
-                  boolPreferences[
-                      BoolPreference.SAVE_SEPERATELY_BY_CHANNEL] = value;
+                  boolPreferences[BoolPreference.SAVE_SEPERATELY_BY_CHANNEL] =
+                      value;
                 });
               },
             )
@@ -187,5 +196,40 @@ class ReplaySettingsListState extends State<ReplaySettingsList> {
         ),
       ],
     );
+  }
+
+  void showIntEditDialog(
+      BuildContext context, IntPreference key, String titleKey) {
+    TextEditingController controller =
+        TextEditingController(text: intPreferences[key].toString());
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text(titleKey.tr()),
+            content: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      intPreferences[key] = int.parse(controller.text);
+                    });
+                  },
+                  child: Text("DIALOG_CONFIRM".tr())),
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("DIALOG_CANCEL".tr()))
+            ],
+          );
+        });
   }
 }
