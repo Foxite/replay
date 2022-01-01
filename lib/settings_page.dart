@@ -96,12 +96,12 @@ class SettingsPageState extends State<SettingsPage> {
   Future<void> saveSettingsAndApply(bool needRestart) async {
     if(settingsWidget == null) return;
     if (needRestart) {
-      // await platform.invokeMethod("stopReplayForegroundService");
+      await platform.invokeMethod("stopReplayForegroundService");
     }
     Map<String, dynamic> preferences = settingsWidget!.changedPreferences;
     await platform.invokeMethod("updateSettingPreferences", preferences);
     if(needRestart) {
-      // await platform.invokeMethod("startReplayForegroundService");
+      await platform.invokeMethod("startReplayForegroundService");
     }
   }
 }
