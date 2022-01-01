@@ -19,3 +19,6 @@ jobs:
         run: | 
           flutter pub get
           flutter build apk
+      - uses: actions/upload-artifact@v2
+        with:
+          path: build/app/outputs/flutter-apk/app-release.apk
