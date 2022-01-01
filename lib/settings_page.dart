@@ -140,6 +140,8 @@ class ReplaySettingsListState extends State<ReplaySettingsList> {
   Widget build(BuildContext context) {
     widget.changedPreferences
         .addAll(boolPreferences.map((key, value) => MapEntry(key.name, value)));
+    widget.changedPreferences
+        .addAll(intPreferences.map((key, value) => MapEntry(key.name, value)));
     return SettingsList(
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       backgroundColor: const Color.fromARGB(0, 0, 0, 0),
@@ -177,7 +179,8 @@ class ReplaySettingsListState extends State<ReplaySettingsList> {
               subtitle: intPreferences[IntPreference.RECORD_LENGTH].toString(),
               leading: const Icon(Icons.timelapse),
               onPressed: (context) {
-                showIntEditDialog(context, IntPreference.RECORD_LENGTH, 'SETTINGS_SAVE_RECORD_LENGTH');
+                showIntEditDialog(context, IntPreference.RECORD_LENGTH,
+                    'SETTINGS_SAVE_RECORD_LENGTH');
               },
             ),
             SettingsTile.switchTile(

@@ -89,6 +89,11 @@ class MainActivity: FlutterActivity() {
                                 putBoolean(key.value, call.argument<Boolean>(key.value) ?: throw IllegalStateException())
                             }
                         }
+                        for(key in IntPreference.values()) {
+                            if(call.hasArgument(key.value)) {
+                                putInt(key.value, call.argument<Int>(key.value) ?: throw IllegalStateException())
+                            }
+                        }
                         commit()
                     }
                 }
