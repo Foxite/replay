@@ -1,8 +1,10 @@
 package com.example.replay
 
 import android.Manifest.permission.RECORD_AUDIO
+import android.app.Activity
 import android.content.*
 import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.os.IBinder
 import android.widget.Toast
@@ -44,6 +46,7 @@ class MainActivity: FlutterActivity() {
                         putString("NOTIFICATION_TEXT", call.argument("NOTIFICATION_TEXT"))
                         putString("SAVE_REPLAY_TEXT", call.argument("SAVE_REPLAY_TEXT"))
                         putString("TURN_OFF_TEXT", call.argument("TURN_OFF_TEXT"))
+                        putString("SAVE_IN_PROGRESS_TITLE", call.argument("SAVE_IN_PROGRESS_TITLE"))
                         putString("SAVE_COMPLETE_TITLE", call.argument("SAVE_COMPLETE_TITLE"))
                         putString("SAVE_COMPLETE_TEXT", call.argument("SAVE_COMPLETE_TEXT"))
                         putString("PERMISSION_REQUIRED", call.argument("PERMISSION_REQUIRED"))
@@ -54,9 +57,8 @@ class MainActivity: FlutterActivity() {
                         result.success(null)
                         return@setMethodCallHandler
                     }
-                    val serviceIntent = Intent(this, ReplayForegroundService::class.java)
-                    startForegroundService(serviceIntent)
-                    bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)
+                    val mediaProjectionManager = applicationContext.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                    startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), 8)
                     result.success(null)
                 }
                 "stopReplayForegroundService" -> {
@@ -102,6 +104,21 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        val pref = getSharedPreferences("LOCALIZATION", Context.MODE_PRIVATE)
+        if(requestCode == 8 && resultCode == Activity.RESULT_OK) {
+            val serviceIntent = Intent(this, ReplayForegroundService::class.java).apply {
+                putExtra("RESULT_DATA", data!!)
+            }
+            startForegroundService(serviceIntent)
+            bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)
+        } else {
+            Toast.makeText(this, pref.getString("PERMISSION_REQUIRED", "PERMISSION_REQUIRED"), Toast.LENGTH_LONG).show()
+        }
+
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     private fun requestRecordPermission(): Boolean {

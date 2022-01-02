@@ -30,7 +30,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-       <service android:enabled="true" android:foregroundServiceType="microphone" android:name=".ReplayForegroundService"/>
+       <service android:enabled="true" android:foregroundServiceType="microphone|mediaProjection" android:name=".ReplayForegroundService"/>
         <receiver android:name=".BootCompleteReceiver"
             android:exported="true"
             android:enabled="true">

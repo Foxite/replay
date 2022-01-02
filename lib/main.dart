@@ -56,6 +56,7 @@ class MainPageState extends State<MainPage> {
               'NOTIFICATION_TEXT': 'NOTIFICATION_TEXT'.tr(),
               'SAVE_REPLAY_TEXT': 'SAVE_REPLAY_TEXT'.tr(),
               'TURN_OFF_TEXT': 'TURN_OFF_TEXT'.tr(),
+              'SAVE_IN_PROGRESS_TITLE': 'SAVE_IN_PROGRESS_TITLE'.tr(),
               'SAVE_COMPLETE_TITLE': 'SAVE_COMPLETE_TITLE'.tr(),
               'SAVE_COMPLETE_TEXT': 'SAVE_COMPLETE_TEXT'.tr(),
               'PERMISSION_REQUIRED': 'PERMISSION_REQUIRED'.tr()
