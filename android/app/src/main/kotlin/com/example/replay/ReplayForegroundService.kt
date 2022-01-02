@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.media.*
@@ -21,6 +22,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -38,7 +40,7 @@ class ReplayForegroundService : Service() {
         const val GENERAL_NOTI_CHANNEL_ID = "GENERAL_NOTIFICATION_CHANNEL"
         const val INPUT_CHANNEL = AudioFormat.CHANNEL_IN_MONO
         const val INPUT_ENCODING = AudioFormat.ENCODING_PCM_16BIT
-        const val REC_BUFFER_MULTIPLIER = 30
+        var REC_BUFFER_MULTIPLIER = 30
         var isServiceRunning = false
 
     }
@@ -61,6 +63,8 @@ class ReplayForegroundService : Service() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             throw IllegalStateException()
         }
+        val pref = getSharedPreferences("SETTINGS", Context.MODE_PRIVATE)
+        REC_BUFFER_MULTIPLIER = pref.getInt("RECORD_LENGTH", 30)
         createNotification()
         thread = Thread {
             try {
@@ -141,10 +145,11 @@ class ReplayForegroundService : Service() {
             writeString(output, "data") // subchunk 2 id
             writeInt(output, buffer.size * 2) // subchunk 2 size
             val byteBuffer = ByteBuffer.allocate(buffer.size * 2).order(ByteOrder.LITTLE_ENDIAN)
-            for (data in buffer) byteBuffer.putShort(data)
+            for(data in buffer) byteBuffer.putShort(data)
             output.write(byteBuffer.array())
         } finally {
             output?.close()
+
             val manager = getSystemService(NotificationManager::class.java)
             val channel = NotificationChannel(
                     GENERAL_NOTI_CHANNEL_ID,
@@ -174,6 +179,10 @@ class ReplayForegroundService : Service() {
     private fun writeShort(output: DataOutputStream, value: Short) {
         output.write(value.toInt() shr 0)
         output.write(value.toInt() shr 8)
+    }
+
+    private fun writeByte(output: DataOutputStream, value: Byte) {
+        output.write(value.toInt() shr 0)
     }
 
     @Throws(IOException::class)
