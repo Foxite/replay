@@ -1,0 +1,6 @@
+{
+    "USE_MIC_CHANNEL": false,
+    "USE_OUTPUT_CHANNEL": false,
+    "SAVE_SEPERATELY_BY_CHANNEL": false,
+    "RECORD_LENGTH": 30
+}

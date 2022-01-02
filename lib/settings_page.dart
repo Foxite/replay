@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:easy_localization/src/public_ext.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_settings_ui/flutter_settings_ui.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:replay/preferences.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -56,7 +59,7 @@ class SettingsPageState extends State<SettingsPage> {
             if (!((await platform
                 .invokeMethod("isReplayForegroundServiceRunning")) as bool)) {
               await saveSettingsAndApply(false);
-              Navigator.of(context).popUntil((route) => !route.isFirst);
+              Navigator.of(context).pop();
               return;
             }
             showDialog(
@@ -85,8 +88,13 @@ class SettingsPageState extends State<SettingsPage> {
   }
 
   Future<Map<String, dynamic>> getPreferences() async {
-    return await platform.invokeMapMethod<String, dynamic>(
+    Map<String, dynamic> current = await platform.invokeMapMethod<String, dynamic>(
         "getSettingPreferences") as Map<String, dynamic>;
+    Map<String, dynamic> defaults = jsonDecode(await rootBundle.loadString('assets/default-settings.json'));
+    for(String key in defaults.keys) {
+      current.putIfAbsent(key, () => defaults[key]);
+    }
+    return current;
   }
 
   Future<void> saveSettingsAndApply(bool needRestart) async {
@@ -127,11 +135,6 @@ class ReplaySettingsListState extends State<ReplaySettingsList> {
         boolPreferences[boolKey] = preferences[key] as bool;
       } else if (intKey != null) {
         intPreferences[intKey] = preferences[key] as int;
-      }
-    }
-    for (BoolPreference key in BoolPreference.values) {
-      if (boolPreferences[key] == null) {
-        boolPreferences[key] = false;
       }
     }
   }
