@@ -1,4 +1,4 @@
-name: Commit validation
+name: Build apk and upload artifact
 
 on:
   push:
